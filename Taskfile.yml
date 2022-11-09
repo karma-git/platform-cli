@@ -1,0 +1,42 @@
+---
+
+version: "3"
+
+tasks:
+  fmt:
+    desc: format code
+    vars:
+      MODULE:
+        sh: head -n 1 go.mod | cut -d' ' -f2
+    cmds:
+      - black --check --diff --line-length 119 ./
+
+  lint:
+    desc: lint code
+    cmds:
+      - flake8 --max-line-length 119 --statistics ./
+      - yamllint .
+
+  update-chart:
+    desc: update the helm chart
+    cmds:
+      - helm-docs -c helm/pv-migrate/
+      - helm package helm/pv-migrate/
+      - mv pv-migrate-*.tgz internal/migrator/helm-chart.tgz
+
+  clean:
+    desc: clean
+    cmds:
+      - rm -rf {{.ROOT_DIR}}/dist/
+
+  build:
+    desc: build
+    cmds:
+      - python3 setup.py sdist
+
+  release:
+    desc: release
+    vars:
+      NX_PYPI_SERVER: "https://pypi.platform.sandbox.nexters.team"
+    cmds:
+      - twine upload --repository-url {{.NX_PYPI_SERVER}} {{.ROOT_DIR}}/dist/*

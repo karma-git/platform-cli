@@ -1,0 +1,11 @@
+---
+
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: vs-name
+  namespace: pvc-ns
+spec:
+  source:
+    persistentVolumeClaimName: pvc-name
+  volumeSnapshotClassName: vsclass-name

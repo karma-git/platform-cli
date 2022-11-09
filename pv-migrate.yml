@@ -1,0 +1,55 @@
+---
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pv-migrate-aacea-rsync # override
+  namespace: env-ahorbach  # override
+spec:
+  parallelism: 1
+  completions: 1
+  backoffLimit: 0
+  template:
+    spec:
+      volumes:
+        - name: vol-0
+          persistentVolumeClaim:
+            claimName: word-press-wordpress # override
+            readOnly: true
+        - name: vol-1
+          persistentVolumeClaim:
+            claimName: word-press-wordpress-backup # override
+      containers:
+        - name: rsync
+          image: docker.io/utkuozdemir/pv-migrate-rsync:1.0.0 # FIXME: put into ECR
+          command:
+            - sh
+            - '-c'
+            - |
+              n=0
+              rc=1
+              retries=10
+              until [ "$n" -ge "$retries" ]
+              do
+                rsync -azv --info=progress2,misc0,flist0 --no-inc-recursive -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5" /source// /dest// && rc=0 && break
+                n=$((n+1))
+                echo "rsync attempt $n/10 failed, waiting 5 seconds before trying again"
+                sleep 5
+              done
+
+              if [ $rc -ne 0 ]; then
+                echo "rsync job failed after $retries retries"
+              fi
+              exit $rc
+          resources: {}
+          volumeMounts:
+            - name: vol-0
+              readOnly: true
+              mountPath: /source
+            - name: vol-1
+              mountPath: /dest
+          imagePullPolicy: IfNotPresent
+          securityContext: {}
+      restartPolicy: Never
+  suspend: false
+  ttlSecondsAfterFinished: 0 # due to this parameter, job keep pvc bounded to pod

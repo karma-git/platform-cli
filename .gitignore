@@ -1,0 +1,10 @@
+# python virtual environment
+venv
+__pycache__
+# secrets
+*.env
+# trash
+tmp.*
+# build
+dist
+*.egg-info
