@@ -99,6 +99,7 @@ class Rotator:
     def rotate(self):
         self.__init_logger()
 
+        # TODO: split and dry it via services?
         if self.__config.mode == "chunks":
             r = self.drain_node_chunks()
 

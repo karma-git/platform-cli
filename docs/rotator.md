@@ -5,7 +5,8 @@
 1. Получаем на вход имя `selector`, по нему находим ноды, которые нужно сротировать
 2. Ставим на ноду `cordon`
 3. Для pod-ов, не созданных `DaemonSet`-ом делаем eviction
-
+<!-- TODO: should we increase Provisioner resource before rotation? -->
+<!-- TODO: retry to evict not_evicted pods -->
 ## details
 
 

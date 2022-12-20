@@ -8,6 +8,7 @@ vars:
 dotenv: ['{{.ROOT_DIR}}/.env.',]
 
 tasks:
+  # TODO: apply style to src
   fmt:
     desc: format code
     cmds:
