@@ -3,7 +3,7 @@ import logging
 import json
 from time import sleep
 
-from libs.others import (
+from platform_cli.libs.others import (
     logging_prefix,
     k8s_owner_info,
     argo_instance,
@@ -14,14 +14,14 @@ from libs.others import (
     CRD_DICT,
     ROOT_ARGO_APP,
 )
-from libs.argo import ArgoApi, ArgoCRD
-from libs.k8s import NxK8s
+from platform_cli.libs.argo import ArgoCRD
+from platform_cli.libs.k8s import K8s
 
 
 def cli():
     example_text = """
-    python main.py --context sandbox -n loki --pvc storage-loki-0
-    python main.py --context sandbox --sync
+    python old_migration.py --context ${ctx} -n ${ns} --pvc ${pvc}
+    python old_migration.py --context ${ctx} --sync
     """
 
     parser = argparse.ArgumentParser(
@@ -100,7 +100,7 @@ def main():
     logging.debug(f"{logging_prefix()}  <user_args>: {user_args}")
 
     # Kubernetes
-    k = NxK8s(
+    k = K8s(
         context=user_args.context,
         namespace=user_args.namespace,
         pvc=user_args.pvc,
@@ -109,7 +109,7 @@ def main():
 
     # ArgoAPI
     """
-    argo_server = f"argocd.{user_args.server}.nexters.team"
+    argo_server = f"argocd.{user_args.server}.<my-company>.<domain>"
 
     if user_args.generate_token is not None:
         creds = user_args.generate_token
@@ -285,27 +285,5 @@ def main():
     backup_pvc = k.delete_pvc(pvc_name=f"{user_args.pvc}-backup")
 
 
-def test():
-    # cli args, logging
-    user_args = cli()
-
-    logging.basicConfig(
-        level=LOG_LEVEL[user_args.verbose],
-        format="%(asctime)s %(levelname)s %(name)s | %(message)s",
-    )
-    logging.info(f"{logging_prefix()}  <user_args>: {user_args}")
-
-    # Kubernetes
-    k = NxK8s(
-        context=user_args.context,
-        namespace=user_args.namespace,
-        pvc=user_args.pvc,
-        sc=user_args.sc,
-    )
-    k.create_snapshot(user_args.pvc, "ebs-gp3-ext4")
-    # origin_pvc = k.get_pvc(user_args.pvc)
-
-
 if __name__ == "__main__":
     main()
-    # test()

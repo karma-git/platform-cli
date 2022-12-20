@@ -1,29 +1,30 @@
 import logging
+from pathlib import Path
 from uuid import uuid4
+import typing as t
+import ast
 
-from libs.others import logging_prefix, k8s_owner_info, save_request_json, CRD_DICT
+from platform_cli.libs.others import logging_prefix, k8s_owner_info, CRD_DICT, save_request_json
 
 from kubernetes import client, config
 
 # typing
-from typing import List, Tuple, Any
 from kubernetes.client.models import (
     V1PersistentVolumeClaim,
     V1ObjectMeta,
     V1OwnerReference,
-    V1Pod,
     V1PodList,
-    V1Volume,
+    V1Pod,
     V1Deployment,
     V1StatefulSet,
     V1CustomResourceDefinition,
     V1Job,
+    V1Node,
+    V1Eviction
 )
 from kubernetes.client.exceptions import ApiException
-
 import yaml
 
-from dataclasses import dataclass
 from dataclasses import dataclass, field
 
 
@@ -49,15 +50,15 @@ class PodAbstraction:
             self.is_workload_owner = False
 
 
-class NxK8s:
-    migrate_job_template = "pv-migrate.yml"
-    vs_template = "volume-snapshot.yml"
+class K8s:
+    migrate_job_template = f"{Path(__file__).parent}/yaml/job-rsync.yml"
+    vs_template = f"{Path(__file__).parent}/yaml/volume-snapshot.yml"
 
     def __init__(
         self,
         context,
-        namespace,
-        pvc,
+        namespace=None,
+        pvc=None,
         sc="ebs-gp3-ext4-eu-west-1b",
     ) -> None:
         self.ctx = context
@@ -78,6 +79,86 @@ class NxK8s:
         self.AppsV1Api = client.AppsV1Api()
         self.CustomObjectsApi = client.CustomObjectsApi()
         self.BatchV1Api = client.BatchV1Api()
+
+    # nodes
+
+    def get_nodes(self, label_selector) -> t.List[V1Node]:
+        (
+            response,
+            http_sc,
+            _,
+        ) = self.CoreV1Api.list_node_with_http_info(
+            label_selector=label_selector,
+        )
+        logging.info(f"{logging_prefix()} code=<{http_sc}>nodes=<{len(response.items)}>")
+        # return response
+        nodes = [node for node in response.items]
+        return nodes
+
+    def cordon_node(self, name) -> V1Node:
+        body = {
+        "spec": {
+            "unschedulable": True,
+        },
+    }
+        (
+            response,
+            http_sc,
+            _,
+        )  = self.CoreV1Api.patch_node_with_http_info(
+            name=name,
+            body=body
+        )
+        logging.info(f"{logging_prefix()} code=<{http_sc}>,pvc_name=<{response.metadata.name}>")
+        return response
+
+
+    def get_pods(self, node_name) -> t.List[V1Pod]:
+        all_pods = self.CoreV1Api.list_pod_for_all_namespaces(field_selector=f'spec.nodeName={node_name}')
+        logging.info(f"{logging_prefix()} node=<{node_name}>,all_pods=<{len(all_pods.items)}>")
+        pods_wo_ds = [p for p in all_pods.items
+                  if k8s_owner_info(p.metadata).get("kind") != 'DaemonSet']
+
+        logging.info(f"{logging_prefix()} node=<{node_name}>,pods_wo_ds=<{len(pods_wo_ds)}>")
+        return pods_wo_ds
+
+    def evict_pod(self, pod: V1Pod) -> t.Union[V1Eviction, V1Pod]:
+        """
+        'kind': 'Status',
+        'metadata': {'annotations': None,
+              'creation_timestamp': None,
+              'deletion_grace_period_seconds': None,
+              'deletion_timestamp': None,
+              'finalizers': None,
+              'generate_name': None,
+              'generation': None,
+              'labels': None,
+              'managed_fields': None,
+              'name': None,
+              'namespace': None,
+              'owner_references': None,
+              'resource_version': None,
+              'self_link': None,
+              'uid': None}}
+        """
+        name = pod.metadata.name
+        namespace = pod.metadata.namespace
+        metadata = V1ObjectMeta(name=name, namespace=namespace)
+        body = V1Eviction(metadata=metadata)
+        try:
+            response = self.CoreV1Api.create_namespaced_pod_eviction(name, namespace, body)
+        except ApiException as e:
+            body = ast.literal_eval(e.body) # body is a string, so it need to be converted into dict
+            if body["message"] == "Cannot evict pod as it would violate the pod's disruption budget.":
+                logging.warning(
+                f"{logging_prefix()}   can't evict pod=<{name} due to pdp,details=<{body['details']['causes'][0]['message']}>"
+                )
+                return pod
+            else:
+                logging.error(
+                f"{logging_prefix()}   <code>={e.status}\n\t details={e.body}"
+            )
+        return response
 
     # pv
 
@@ -140,13 +221,18 @@ class NxK8s:
 
         try:
             for pod in pods.items:  # pods in ns
-                for v in pod.spec.volumes:  # volumes of the pod
-                    if v.persistent_volume_claim:  # looking for pvc volumes
-                        if v.persistent_volume_claim.claim_name == self.pvc:
-                            logging.info(
-                                f"{logging_prefix()}   <pod>={pod.metadata.name}\n\t owner={k8s_owner_info(pod.metadata)}"
-                            )
-                            return pod.metadata
+                try:
+                    for v in pod.spec.volumes:  # volumes of the pod
+                        if v.persistent_volume_claim:  # looking for pvc volumes
+                            if v.persistent_volume_claim.claim_name == self.pvc:
+                                logging.info(
+                                    f"{logging_prefix()}   <pod>={pod.metadata.name}\n\t owner={k8s_owner_info(pod.metadata)}"
+                                )
+                                return pod.metadata
+                except:
+                    logging.error(
+                        f"{logging_prefix()}   Strange situation :D"
+                    )
         except ApiException as e:
             logging.warning(
                 f"{logging_prefix()}   <code>={e.status}\n\t details={e.body}"

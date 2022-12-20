@@ -1,0 +1,2 @@
+recursive-include platform_cli *.all
+recursive-include platform_cli *.yml

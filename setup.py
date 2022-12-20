@@ -7,15 +7,22 @@ from setuptools import find_packages, setup
 HERE = pathlib.Path(__file__).parent
 
 setup(
-    name="nx-pv-migrate",
-    python_requires=">=3.8",
-    version="0.1.3",
-    py_modules=["libs"],
+    name="platform_cli",
+    python_requires=">=3.10",
+    version="0.3.0",
     packages=find_packages(exclude=()),
     include_package_data=True,
-    install_requires=["requests", "kubernetes"],
-    entry_points="""
-        [console_scripts]
-        nx-k8s=main:main
-    """,
+    package_data={
+        'platform_cli': ['lib/yaml/*.yml'],
+    },
+    install_requires=[
+        "requests==2.28.1",
+        "kubernetes==25.3.0",
+        "pydantic==1.10.2",
+        "emoji==2.2.0",
+        ""
+    ],
+    entry_points={
+        "console_scripts": ['pl-cli=platform_cli.runner:run'],
+    },
 )

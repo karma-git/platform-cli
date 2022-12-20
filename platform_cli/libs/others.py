@@ -3,6 +3,7 @@ import json
 import logging
 from typing import List, Union
 
+import emoji
 from kubernetes.client.models import V1ObjectMeta, V1OwnerReference
 
 STORAGE_CLASS = "ebs-gp3-ext4-eu-west-1b"
@@ -27,7 +28,7 @@ ROOT_ARGO_APP = "cluster-init"
 
 def logging_prefix() -> str:
     """
-    2022-11-03 14:51:47,617 INFO root | [main.py | logging_prefix]:  <user_args>: Namespace(context='sandbox', namespace=None, pvc=None, sync=True, verbose='INFO')
+    2022-11-03 14:51:47,617 INFO root | [old_migration.py | logging_prefix]:  <user_args>: Namespace(context='sandbox', namespace=None, pvc=None, sync=True, verbose='INFO')
     """
     ctx = inspect.stack()[1]
     return f"[{ctx.filename.split('/')[-1]} | {ctx.function}]:"
@@ -40,7 +41,7 @@ def confirm(text: str, log: str) -> bool:
     """
     while True:
         try:
-            value = input(f"{text}: y/n ?")
+            value = input(emoji.emojize(f":thinking_face: {text}: y/n? "))
             if value in ("y", "yes"):
                 rv = True
             elif value in ("n", "no"):
@@ -79,16 +80,23 @@ def sc_to_vsc(sc: str) -> str:
     return "-".join(sc_list[:3])
 
 
-def k8s_owner_info(data: V1ObjectMeta) -> Union[dict, None]:
+def k8s_owner_info(data: V1ObjectMeta) -> dict:
     """
     return object owner info, or None if the object has no owner
     """
     data = dict_to_metadata(data)
     owner: List[V1OwnerReference] = data.owner_references
+    nil = {
+        "name": None,
+        "kind": None,
+        "group": None,
+        "version": None,
+        "plural": None,
+    }
     if owner is None:
-        return None
+        return nil
     elif len(owner) == 0:
-        return None
+        return nil
     elif len(owner) != 1:
         logging.warning(
             f"{logging_prefix()}  object=<{data.name} has more then 1 owner>"

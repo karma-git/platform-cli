@@ -10,7 +10,7 @@ import json
 from kubernetes import client, config
 import requests
 
-from libs.others import logging_prefix
+from platform_cli.libs.others import logging_prefix
 
 
 class ArgoApi:
