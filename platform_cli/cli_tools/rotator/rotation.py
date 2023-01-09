@@ -69,7 +69,9 @@ class Rotator:
             proceed = confirm(f"drain node: <{node_name}>", node_name)
             if not proceed:
                 logging.warning(f"{logging_prefix()}:  Won't Proceed on Node=<{node_name}>")
-                return not_evicted_all_nodes
+                # NOTE: decided to proceed with the next node
+                # return not_evicted_all_nodes
+                continue
             not_evicted = self._node_drain(node, pods)
             not_evicted_all_nodes.update(not_evicted)
 

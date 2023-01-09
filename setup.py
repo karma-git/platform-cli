@@ -9,7 +9,7 @@ HERE = pathlib.Path(__file__).parent
 setup(
     name="platform_cli",
     python_requires=">=3.10",
-    version="0.3.0",
+    version="0.3.1",
     packages=find_packages(exclude=()),
     include_package_data=True,
     package_data={
@@ -20,6 +20,7 @@ setup(
         "kubernetes==25.3.0",
         "pydantic==1.10.2",
         "emoji==2.2.0",
+        "prettytable==3.5.0",
         ""
     ],
     entry_points={
