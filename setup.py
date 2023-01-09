@@ -21,6 +21,7 @@ setup(
         "pydantic==1.10.2",
         "emoji==2.2.0",
         "prettytable==3.5.0",
+        "humanize==4.4.0",
         ""
     ],
     entry_points={

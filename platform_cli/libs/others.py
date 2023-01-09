@@ -53,7 +53,12 @@ def confirm(text: str, log: str) -> bool:
                 continue
             break
         except (KeyboardInterrupt, EOFError):
-            raise Exception(f"Interrupted Step=<{log}>")
+            logging.info(
+                    f"{logging_prefix()}  Interrupted Step=<{log}>"
+                )
+            print(emoji.emojize(f":waving_hand: bye"))
+            exit()
+            # raise Exception(f"Interrupted Step=<{log}>")
     return rv
 
 
