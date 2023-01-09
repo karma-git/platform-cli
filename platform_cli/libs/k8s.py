@@ -158,7 +158,9 @@ class K8s:
                 logging.error(
                 f"{logging_prefix()}   <code>={e.status}\n\t details={e.body}"
             )
-        return response
+        # if we got response from eviction api
+        else:
+            return response
 
     # pv
 
