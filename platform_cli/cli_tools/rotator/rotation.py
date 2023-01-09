@@ -18,7 +18,11 @@ from platform_cli.libs.others import (
     LOG_LEVEL,
 )
 from platform_cli.libs.k8s import K8s
-from platform_cli.cli_tools.rotator.services.helpers import drain_node_chunks_calc, pods_on_node_table
+from platform_cli.cli_tools.rotator.services.helpers import (
+    drain_node_chunks_calc,
+    pods_on_node_table,
+    node_message,
+    )
 
 
 class Rotator:
@@ -61,7 +65,7 @@ class Rotator:
         not_evicted_all_nodes = {}
         for node in self.nodes:
             node_name = node.metadata.name
-            print(emoji.emojize(f":laptop: Node: <{node_name}>"))
+            print(node_message(self.__config.context, node_name, node.metadata.creation_timestamp))
 
             pods = self.__k8s.get_pods(node_name)
             pods_on_node_table(pods)
@@ -86,7 +90,7 @@ class Rotator:
             nodes = nodes[chunk_size:]
             for node in step:
                 node_name = node.metadata.name
-                print(emoji.emojize(f":laptop: Node: <{node_name}>"))
+                print(node_message(self.__config.context, node_name, node.metadata.creation_timestamp))
                 pods = self.__k8s.get_pods(node_name)
                 pods_on_node_table(pods)
 
