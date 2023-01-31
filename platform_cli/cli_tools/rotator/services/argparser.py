@@ -16,7 +16,7 @@ def get_args():
 
     parser.add_argument("--context", help="Arg=(kubernetes context)")
     parser.add_argument("-l", "--selector", help="Arg=(Selector (label query) for nodes)")
-    parser.add_argument("-m", "--mode", help="Arg=()", choices=["chunks", "manual"], default="chunks")
+    parser.add_argument("-m", "--mode", help="Arg=()", choices=["chunks", "manual", "cordon", "uncordon"], default="chunks")
     parser.add_argument("--sleep", help="Arg=(Pause between mode=<chunks> drains in seconds)", type=int, default=90)
     parser.add_argument("--ratio", help="Arg=(How much need to wait between chunks drains?)", type=float, default=0.1)
     # logs

@@ -61,6 +61,15 @@ class Rotator:
                 not_evicted.update({node_name: ev})
         return not_evicted
 
+    def cordon_nodes(self, unschedulable: bool = True) -> list:
+        nodes = []
+        for node in self.nodes:
+            node_name = node.metadata.name
+            self.__k8s.cordon_node(node_name, unschedulable)
+            nodes.append(node_name)
+
+        return nodes
+
     def drain_manual(self) -> dict:
         not_evicted_all_nodes = {}
         for node in self.nodes:
@@ -111,5 +120,10 @@ class Rotator:
 
         elif self.__config.mode == "manual":
             r = self.drain_manual()
+
+        elif self.__config.mode == "cordon":
+            r = self.cordon_nodes()
+        elif self.__config.mode == "uncordon":
+            r = self.cordon_nodes()
 
         print(json.dumps(r, indent=4))

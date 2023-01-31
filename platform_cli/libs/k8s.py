@@ -95,10 +95,10 @@ class K8s:
         nodes = [node for node in response.items]
         return nodes
 
-    def cordon_node(self, name) -> V1Node:
+    def cordon_node(self, name: str, unschedulable: bool = True) -> V1Node:
         body = {
         "spec": {
-            "unschedulable": True,
+            "unschedulable": unschedulable,
         },
     }
         (
